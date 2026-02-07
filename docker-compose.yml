@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with TimescaleDB
+  postgres:
+    image: timescale/timescaledb:latest-pg14
+    container_name: plc-monitor-db
+    environment:
+      POSTGRES_DB: plc_monitor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password_change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plc-network
+
+  # Redis Cache & Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: plc-monitor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plc-network
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: plc-monitor-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: plc_monitor
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password_change_me
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # JWT
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRY: 7d
+      
+      # CORS
+      CORS_ORIGIN: http://localhost:4200
+      
+      # Logging
+      LOG_LEVEL: debug
+      
+      # Features
+      ENABLE_WEBSOCKET: "true"
+      ENABLE_ALARMS: "true"
+      ENABLE_REPORTS: "true"
+    
+    ports:
+      - "3000:3000"
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    volumes:
+      - ./backend/src:/app/src
+    
+    networks:
+      - plc-network
+
+  # Frontend (Optional - for development with Angular dev server)
+  # Uncomment if you want to run frontend in Docker as well
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: plc-monitor-frontend
+  #   ports:
+  #     - "4200:4200"
+  #   environment:
+  #     API_URL: http://localhost:3000/api
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - plc-network
+
+  # pgAdmin - PostgreSQL Management UI (Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: plc-monitor-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password_change_me
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - plc-network
+
+  # Redis Commander - Redis Management UI (Optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: plc-monitor-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - plc-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  plc-network:
+    driver: bridge

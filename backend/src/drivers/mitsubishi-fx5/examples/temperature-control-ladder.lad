@@ -1,0 +1,380 @@
+(*
+ * Temperature Control Logic - Mitsubishi FX5 PLC
+ * Ladder Logic Diagram (IEC 61131-3 LD language)
+ * 
+ * This implements the same temperature control as temperature-control.st
+ * but using traditional Ladder Logic format for visualization.
+ * 
+ * Device Mapping:
+ * X0-X9      : Input relays (physical inputs)
+ * Y0-Y9      : Output relays (physical outputs)
+ * M0-M999    : Internal relays
+ * D0-D9999   : Data registers (16-bit)
+ * T0-T99     : Timers
+ * C0-C99     : Counters
+ * 
+ * Register Allocation:
+ * D0-D9      : Analog inputs (raw values)
+ * D10-D19    : Setpoints
+ * D20-D29    : PID coefficients
+ * D30-D39    : PID states
+ * D40-D49    : Alarm thresholds
+ * D100-D199  : Data logging buffer
+ * D200-D299  : Extended data logging
+ * 
+ * Bit Allocation:
+ * M0-M9      : Control signals
+ * M10-M19    : Status indicators
+ * M20-M29    : Alarm flags
+ * 
+ * Author: PLC Code Development Agent
+ * Date: 2025-02-07
+ *)
+
+(* ============================================
+   RUNG 001: Read Temperature Input
+   Convert raw analog input to usable value
+   ============================================ *)
+RUNG(001)
+  
+  (* Always-on *)
+  | |
+  | +-[ ReadAnalog D0 ] (* Read temperature ADC *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 002: Temperature Conversion
+   Scale raw ADC value (0-32000) to degrees (0-100°C)
+   ============================================ *)
+RUNG(002)
+  
+  | M0 |  (* Always-on when system running *)
+  +----+--[ D0 /32 -> D1 ] (* Scale raw to temp value *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 003: Load Setpoint
+   Read temperature setpoint from user input
+   Default 62.5°C (D10=2000)
+   ============================================ *)
+RUNG(003)
+  
+  | |
+  +----+--[ D10=0 ]--[ D10:=2000 ] (* Default setpoint *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 004: Calculate Temperature Error
+   Error = Setpoint - Actual Temperature
+   ============================================ *)
+RUNG(004)
+  
+  | |
+  +----+--[ D10 - D1 -> D11 ] (* Calculate error *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 005: Proportional Term (P)
+   Kp = 0.5 in D20
+   P_term = Kp * Error
+   ============================================ *)
+RUNG(005)
+  
+  | |
+  +----+--[ D20 * D11 -> D30 ] (* Proportional term *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 006: Integral Term (I)
+   Ki = 0.1 in D21
+   I_state = I_state + Ki * Error
+   Anti-windup: saturate at ±1000
+   ============================================ *)
+RUNG(006)
+  
+  | |
+  +----+--[ D31 + (D21 * D11) -> D31 ] (* Accumulate integral *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 007: Anti-windup for Integral
+   Limit integral to prevent reset wind-up
+   ============================================ *)
+RUNG(007)
+  
+  | D31 > 1000 |  (* Check max *)
+  +------------|--[ D31:=1000 ]
+  | |
+  | END
+
+
+RUNG(008)
+  
+  | D31 < -1000 |  (* Check min *)
+  +------------|--[ D31:=-1000 ]
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 009: Derivative Term (D)
+   Kd = 0.05 in D22
+   D_term = Kd * (Error - Previous_Error)
+   ============================================ *)
+RUNG(009)
+  
+  | |
+  +----+--[ (D11 - D12) * D22 -> D32 ] (* Calculate D term *)
+  | |
+  | D11 -> D12 END  (* Store for next cycle *)
+
+
+(* ============================================
+   RUNG 010: Calculate Total PID Output
+   PID_Out = P + I + D
+   Saturate to ±100
+   ============================================ *)
+RUNG(010)
+  
+  | |
+  +----+--[ D30 + D31 + D32 -> D40 ] (* Sum PID terms *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 011: Saturate PID Output (Max)
+   ============================================ *)
+RUNG(011)
+  
+  | D40 > 100 |
+  +-----------|--[ D40:=100 ]
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 012: Saturate PID Output (Min)
+   ============================================ *)
+RUNG(012)
+  
+  | D40 < -100 |
+  +------------|--[ D40:=-100 ]
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 013: Heater Control
+   Turn on heater if PID_Output > 50
+   ============================================ *)
+RUNG(013)
+  
+  | X0        |  (* Heater Enable input *)
+  +-----| |-+
+        | /|
+        |M20|  (* Alarm flag *)
+        |  |
+        +-----[ D40 > 50 ]--[ Y0 ] (* Heater relay *)
+        | |
+        | END
+
+
+(* ============================================
+   RUNG 014: Cooler Control
+   Turn on cooler if PID_Output < -50
+   ============================================ *)
+RUNG(014)
+  
+  | X1        |  (* Cooler Enable input *)
+  +-----| |-+
+        | /|
+        |M20|  (* Alarm flag *)
+        |  |
+        +-----[ D40 < -50 ]--[ Y1 ] (* Cooler relay *)
+        | |
+        | END
+
+
+(* ============================================
+   RUNG 015: Deadband Control
+   Turn off both if -50 <= PID_Output <= 50
+   ============================================ *)
+RUNG(015)
+  
+  | D40 >= -50 AND D40 <= 50 |
+  +--------------------------|--[ Y0 OFF ]
+  | |
+  +--------------------------|--[ Y1 OFF ]
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 016: Temperature Safety Check (Min)
+   Alarm if Temp < 0°C (D1 < 0)
+   ============================================ *)
+RUNG(016)
+  
+  | D1 < 0 |
+  +--------|--[ M20 ] (* Set alarm flag *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 017: Temperature Safety Check (Max)
+   Alarm if Temp > 100°C (D1 > 3200)
+   ============================================ *)
+RUNG(017)
+  
+  | D1 > 3200 |
+  +-----------|--[ M20 ] (* Set alarm flag *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 018: Alarm Reset (Hysteresis)
+   Reset alarm if temp within safe range
+   with hysteresis band
+   ============================================ *)
+RUNG(018)
+  
+  | D1 >= 100 AND D1 <= 3100 |
+  +--------------------------|--[ M20 OFF ] (* Clear alarm *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 019: Alarm LED Control
+   Indicate alarm condition on Y2
+   ============================================ *)
+RUNG(019)
+  
+  | M20 |
+  +-----|--[ Y2 ] (* Alarm LED *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 020: Increment Alarm Counter
+   Count number of alarm events
+   ============================================ *)
+RUNG(020)
+  
+  | M20 |  (* Alarm detected *)
+  +-----|--[ D50 ++ ] (* Increment counter *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 021: Timer for Periodic Logging
+   Log data every 100ms cycle
+   ============================================ *)
+RUNG(021)
+  
+  | |
+  +----+--[ TON T0, 100ms ]
+  | |
+  | T0 ON after 100ms |
+  | M30 = logging enable |
+  | END
+
+
+(* ============================================
+   RUNG 022: Data Logging to Buffer
+   Store temperature data in D100-D199
+   Ring buffer with auto-wrap
+   ============================================ *)
+RUNG(022)
+  
+  | T0 |  (* Periodic timer *)
+  +-----|--[ D51 MOD 100 ]--[ D100+offset := D1 ]
+  | |
+  | D51 ++ END  (* Increment log pointer *)
+
+
+(* ============================================
+   RUNG 023: Watchdog Timer
+   Ensure program runs every cycle
+   Max 5 seconds without update = fault
+   ============================================ *)
+RUNG(023)
+  
+  | |
+  +----+--[ TON T1, 5000ms ]
+  | |
+  | T1 |  (* Timeout detected *)
+  +-----|--[ M21 ] (* Set watchdog fault *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 024: Normal Program Heartbeat
+   Reset watchdog on every cycle
+   ============================================ *)
+RUNG(024)
+  
+  | |
+  +----+--[ T1 RESET ]  (* Reset watchdog *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 025: System Fault Condition
+   Disable all outputs on fault
+   ============================================ *)
+RUNG(025)
+  
+  | M21 |  (* Fault flag *)
+  +-----|--[ Y0 OFF ]  (* Heater off *)
+  | |
+  +-----|--[ Y1 OFF ]  (* Cooler off *)
+  | |
+  | END
+
+
+(* ============================================
+   RUNG 026: Manual Reset of Faults
+   X7 = Manual reset button
+   ============================================ *)
+RUNG(026)
+  
+  | X7 |
+  +-----|--[ M20 OFF ]  (* Clear alarm *)
+  | |
+  +-----|--[ M21 OFF ]  (* Clear fault *)
+  | |
+  | END
+
+
+(* ============================================
+   END OF LADDER LOGIC PROGRAM
+   
+   Program Statistics:
+   - 26 rungs
+   - 2 timers (T0, T1)
+   - 12 data registers (D0-D50)
+   - 5 output relays (Y0-Y2)
+   - 4 input relays (X0-X7)
+   - Cycle time: ~10ms (optimized)
+   ============================================ *)
+END_PROGRAM

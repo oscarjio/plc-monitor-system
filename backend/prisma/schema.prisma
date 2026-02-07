@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model alarm_rules {
+  id                    String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  device_id             Int
+  tag_id                Int
+  rule_name             String      @db.VarChar(255)
+  alarm_name            String      @db.VarChar(255)
+  rule_type             String      @db.VarChar(50)
+  priority              String      @default("medium") @db.VarChar(50)
+  condition             Json
+  is_enabled            Boolean?    @default(true)
+  notification_enabled  Boolean?    @default(true)
+  notification_channels Json?
+  created_at            DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?   @default(now()) @db.Timestamptz(6)
+  devices               devices     @relation(fields: [device_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  device_tags           device_tags @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([device_id], map: "idx_alarm_rules_device_id")
+  @@index([is_enabled], map: "idx_alarm_rules_is_enabled")
+  @@index([priority], map: "idx_alarm_rules_priority")
+}
+
+model alarms {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  device_id         String    @db.VarChar(255)
+  alarm_name        String    @db.VarChar(255)
+  message           String?
+  priority          String    @default("medium") @db.VarChar(50)
+  time_triggered    DateTime  @default(now()) @db.Timestamptz(6)
+  time_acknowledged DateTime? @db.Timestamptz(6)
+  time_cleared      DateTime? @db.Timestamptz(6)
+  is_active         Boolean?  @default(true)
+  acknowledged_by   String?   @db.Uuid
+  metadata          Json?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([is_active, priority, time_triggered(sort: Desc)], map: "idx_alarms_active_priority_time")
+  @@index([device_id], map: "idx_alarms_device_id")
+  @@index([is_active], map: "idx_alarms_is_active")
+  @@index([priority], map: "idx_alarms_priority")
+  @@index([time_triggered(sort: Desc)], map: "idx_alarms_time_triggered")
+}
+
+model audit_log {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id       String?   @db.Uuid
+  action        String    @db.VarChar(255)
+  resource_type String?   @db.VarChar(50)
+  resource_id   String?   @db.VarChar(255)
+  changes       Json?
+  ip_address    String?   @db.Inet
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  users         users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_log_created_at")
+  @@index([resource_type], map: "idx_audit_log_resource_type")
+  @@index([user_id], map: "idx_audit_log_user_id")
+}
+
+model device_tags {
+  id           Int           @id @default(autoincrement())
+  device_id    Int
+  tag_name     String        @db.VarChar(255)
+  address      String        @db.VarChar(100)
+  data_type    String?       @db.VarChar(50)
+  unit         String?       @db.VarChar(50)
+  min_value    Decimal?      @db.Decimal
+  max_value    Decimal?      @db.Decimal
+  access_type  String?       @default("read") @db.VarChar(20)
+  scan_rate_ms Int?          @default(1000)
+  enabled      Boolean?      @default(true)
+  metadata     Json?
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  alarm_rules  alarm_rules[]
+  devices      devices       @relation(fields: [device_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([device_id, tag_name])
+  @@index([device_id], map: "idx_device_tags_device_id")
+  @@index([enabled], map: "idx_device_tags_enabled")
+}
+
+model devices {
+  id               Int           @id @default(autoincrement())
+  device_name      String        @unique @db.VarChar(255)
+  protocol         String        @db.VarChar(50)
+  ip_address       String        @db.Inet
+  port             Int
+  is_enabled       Boolean?      @default(true)
+  poll_interval_ms Int?          @default(1000)
+  description      String?
+  metadata         Json?
+  created_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?     @default(now()) @db.Timestamptz(6)
+  alarm_rules      alarm_rules[]
+  device_tags      device_tags[]
+
+  @@index([ip_address], map: "idx_devices_ip_address")
+  @@index([is_enabled], map: "idx_devices_is_enabled")
+  @@index([protocol], map: "idx_devices_protocol")
+}
+
+model permissions {
+  id       Int    @id @default(autoincrement())
+  role     String @db.VarChar(50)
+  resource String @db.VarChar(255)
+  action   String @db.VarChar(50)
+
+  @@unique([role, resource, action])
+}
+
+model reports {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name             String    @db.VarChar(255)
+  template_id      String?   @db.Uuid
+  created_by       String    @db.Uuid
+  report_type      String    @db.VarChar(50)
+  report_format    String?   @default("pdf") @db.VarChar(50)
+  report_data      Json?
+  file_path        String?   @db.VarChar(500)
+  time_range_start DateTime? @db.Timestamptz(6)
+  time_range_end   DateTime? @db.Timestamptz(6)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  users            users     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_reports_created_at")
+  @@index([created_by], map: "idx_reports_created_by")
+  @@index([report_type], map: "idx_reports_report_type")
+}
+
+model system_config {
+  key         String    @id @db.VarChar(255)
+  value       String
+  data_type   String?   @db.VarChar(50)
+  description String?
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ts_data {
+  time          DateTime  @db.Timestamptz(6)
+  device_id     String    @db.VarChar(255)
+  tag_name      String    @db.VarChar(255)
+  value_numeric Float?
+  value_string  String?
+  quality       Int?      @default(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([device_id, tag_name, time(sort: Desc)], map: "idx_ts_data_device_id_tag_name_time")
+  @@index([device_id, time(sort: Desc)], map: "idx_ts_data_device_id_time")
+  @@index([tag_name, time(sort: Desc)], map: "idx_ts_data_tag_name_time")
+  @@index([time(sort: Desc)])
+  @@ignore
+}
+
+model users {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username      String      @unique @db.VarChar(255)
+  email         String      @unique @db.VarChar(255)
+  password_hash String      @db.VarChar(255)
+  role          String      @default("operator") @db.VarChar(50)
+  is_active     Boolean?    @default(true)
+  last_login    DateTime?   @db.Timestamptz(6)
+  created_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  audit_log     audit_log[]
+  reports       reports[]
+
+  @@index([is_active], map: "idx_users_is_active")
+  @@index([role], map: "idx_users_role")
+  @@index([username], map: "idx_users_username")
+}
