@@ -1,59 +1,201 @@
-# Frontend
+# PLC Monitor Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.2.
+A modern Angular application for monitoring and managing Programmable Logic Controllers (PLCs).
 
-## Development server
+## Features
 
-To start a local development server, run:
+### 📊 Dashboard
+- Real-time overview of all PLCs in the system
+- Statistics cards showing:
+  - Total number of PLCs
+  - Online PLCs count
+  - Offline PLCs count
+  - PLCs with errors
+- Recent PLCs list with quick access to details
+- Color-coded status indicators
 
+### 📋 PLC List
+- Comprehensive table view of all PLCs
+- Search functionality (by name, IP address, or location)
+- Filter by status (Online, Offline, Error)
+- Sortable columns
+- Direct navigation to PLC details
+- Responsive design for mobile and desktop
+
+### 🔍 PLC Detail View
+- Detailed information for each PLC:
+  - IP Address and Port
+  - Model and Location
+  - Status with visual indicators
+  - Last seen timestamp
+- Real-time tag monitoring:
+  - Tag name, address, and data type
+  - Current value with unit
+  - Quality indicator
+  - Timestamp
+- Breadcrumb navigation
+
+## Technology Stack
+
+- **Framework**: Angular 18+ (Standalone components)
+- **Styling**: SCSS with custom design system
+- **Routing**: Angular Router with lazy loading support
+- **State Management**: RxJS Observables
+- **Build Tool**: Angular CLI with esbuild
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── components/
+│   │   │   ├── dashboard/       # Dashboard view
+│   │   │   ├── navbar/          # Navigation bar
+│   │   │   ├── plc-list/        # PLC list with filters
+│   │   │   └── plc-detail/      # Detailed PLC view
+│   │   ├── models/
+│   │   │   └── plc.model.ts     # TypeScript interfaces
+│   │   ├── services/
+│   │   │   └── plc.service.ts   # PLC data service
+│   │   ├── app.config.ts        # App configuration
+│   │   ├── app.routes.ts        # Routing configuration
+│   │   └── app.ts               # Root component
+│   ├── styles.scss              # Global styles
+│   └── index.html
+├── angular.json
+├── package.json
+└── tsconfig.json
+```
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ and npm
+- Angular CLI (`npm install -g @angular/cli`)
+
+### Installation
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd plc-monitor/frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Development Server
+
+Run the development server:
 ```bash
+npm start
+# or
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Navigate to `http://localhost:4200/`. The application will automatically reload if you change any source files.
 
-## Code scaffolding
+### Build
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+Build the project for production:
 ```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
+npm run build
+# or
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+The build artifacts will be stored in the `dist/` directory.
 
-## Running unit tests
+## API Integration
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Currently, the application uses mock data in `PlcService`. To integrate with a real backend:
 
-```bash
-ng test
+1. Update `PlcService` in `src/app/services/plc.service.ts`
+2. Replace mock data methods with HTTP calls to your API
+3. Import `HttpClient` from `@angular/common/http`
+4. Add `provideHttpClient()` to `app.config.ts` providers
+
+Example:
+```typescript
+import { HttpClient } from '@angular/common/http';
+
+getAllPLCs(): Observable<PLC[]> {
+  return this.http.get<PLC[]>('http://your-api-url/plcs');
+}
 ```
 
-## Running end-to-end tests
+## Data Models
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
+### PLC Interface
+```typescript
+interface PLC {
+  id: string;
+  name: string;
+  ipAddress: string;
+  port: number;
+  status: PLCStatus;
+  lastSeen?: Date;
+  model?: string;
+  location?: string;
+  tags?: PLCTag[];
+}
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+### PLCTag Interface
+```typescript
+interface PLCTag {
+  id: string;
+  name: string;
+  address: string;
+  dataType: string;
+  value: any;
+  quality: string;
+  timestamp: Date;
+  unit?: string;
+}
+```
 
-## Additional Resources
+## Routing
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `/` → Redirects to dashboard
+- `/dashboard` → Dashboard view
+- `/plcs` → PLC list view
+- `/plcs/:id` → PLC detail view
+
+## Styling
+
+The application uses a custom SCSS design system with:
+- Modern, clean interface
+- Responsive design (mobile-first)
+- Color-coded status indicators
+- Smooth transitions and hover effects
+- Accessible design patterns
+
+## Future Enhancements
+
+- [ ] Real-time data updates via WebSocket
+- [ ] Historical data charts and trends
+- [ ] Alarm and notification system
+- [ ] User authentication and authorization
+- [ ] Export functionality (PDF, CSV)
+- [ ] Dark mode support
+- [ ] Multi-language support
+- [ ] PLC configuration management
+- [ ] Advanced filtering and sorting
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Test thoroughly
+4. Submit a pull request
+
+## License
+
+[Your License Here]
+
+## Contact
+
+[Your Contact Information]
