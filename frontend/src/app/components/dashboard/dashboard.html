@@ -1,0 +1,72 @@
+<div class="dashboard">
+  <h2>Dashboard</h2>
+
+  <div class="stats-grid" *ngIf="stats">
+    <div class="stat-card">
+      <div class="stat-icon total">📊</div>
+      <div class="stat-content">
+        <div class="stat-value">{{ stats.totalPLCs }}</div>
+        <div class="stat-label">Total PLCs</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon online">✅</div>
+      <div class="stat-content">
+        <div class="stat-value">{{ stats.onlinePLCs }}</div>
+        <div class="stat-label">Online</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon offline">⭕</div>
+      <div class="stat-content">
+        <div class="stat-value">{{ stats.offlinePLCs }}</div>
+        <div class="stat-label">Offline</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon error">⚠️</div>
+      <div class="stat-content">
+        <div class="stat-value">{{ stats.errorPLCs }}</div>
+        <div class="stat-label">Errors</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="recent-section">
+    <div class="section-header">
+      <h3>Recent PLCs</h3>
+      <a routerLink="/plcs" class="view-all">View All →</a>
+    </div>
+
+    <div class="plc-cards">
+      <div class="plc-card" *ngFor="let plc of recentPLCs">
+        <div class="plc-header">
+          <div class="plc-name">{{ plc.name }}</div>
+          <span class="plc-status" [ngClass]="getStatusClass(plc.status)">
+            {{ plc.status }}
+          </span>
+        </div>
+        <div class="plc-details">
+          <div class="detail-row">
+            <span class="detail-label">IP:</span>
+            <span class="detail-value">{{ plc.ipAddress }}:{{ plc.port }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Model:</span>
+            <span class="detail-value">{{ plc.model || 'N/A' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Location:</span>
+            <span class="detail-value">{{ plc.location || 'N/A' }}</span>
+          </div>
+        </div>
+        <div class="plc-actions">
+          <a [routerLink]="['/plcs', plc.id]" class="btn-view">View Details</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

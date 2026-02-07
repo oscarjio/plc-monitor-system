@@ -1,0 +1,107 @@
+<div class="plc-detail">
+  <div class="breadcrumb">
+    <a routerLink="/dashboard">Dashboard</a>
+    <span class="separator">›</span>
+    <a routerLink="/plcs">PLCs</a>
+    <span class="separator">›</span>
+    <span class="current">{{ plc?.name || 'Loading...' }}</span>
+  </div>
+
+  <div *ngIf="plc; else loading">
+    <div class="header">
+      <div class="title-section">
+        <h2>{{ plc.name }}</h2>
+        <span class="plc-status" [ngClass]="getStatusClass(plc.status)">
+          {{ getStatusIcon(plc.status) }} {{ plc.status }}
+        </span>
+      </div>
+      <div class="actions">
+        <button class="btn-action">Refresh</button>
+        <button class="btn-action">Edit</button>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="info-card">
+        <h3>General Information</h3>
+        <div class="info-grid">
+          <div class="info-row">
+            <span class="label">IP Address:</span>
+            <span class="value">{{ plc.ipAddress }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Port:</span>
+            <span class="value">{{ plc.port }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Model:</span>
+            <span class="value">{{ plc.model || 'N/A' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Location:</span>
+            <span class="value">{{ plc.location || 'N/A' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Last Seen:</span>
+            <span class="value">{{ plc.lastSeen | date:'medium' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tags-card" *ngIf="plc.tags && plc.tags.length > 0">
+        <h3>Tags ({{ plc.tags.length }})</h3>
+        <div class="tags-table-container">
+          <table class="tags-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Value</th>
+                <th>Type</th>
+                <th>Quality</th>
+                <th>Unit</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tag of plc.tags">
+                <td class="tag-name">{{ tag.name }}</td>
+                <td class="tag-address">{{ tag.address }}</td>
+                <td class="tag-value">{{ tag.value }}</td>
+                <td>{{ tag.dataType }}</td>
+                <td>
+                  <span class="tag-quality" [class.quality-good]="tag.quality === 'GOOD'">
+                    {{ tag.quality }}
+                  </span>
+                </td>
+                <td>{{ tag.unit || '-' }}</td>
+                <td>{{ tag.timestamp | date:'short' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tags-card" *ngIf="!plc.tags || plc.tags.length === 0">
+        <h3>Tags</h3>
+        <div class="no-tags">
+          <p>No tags available for this PLC.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #loading>
+    <div class="loading">
+      <p>Loading PLC details...</p>
+    </div>
+  </ng-template>
+
+  <ng-template #notFound>
+    <div class="not-found">
+      <h3>PLC Not Found</h3>
+      <p>The requested PLC could not be found.</p>
+      <a routerLink="/plcs" class="btn-back">Back to PLC List</a>
+    </div>
+  </ng-template>
+</div>

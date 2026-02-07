@@ -1,0 +1,71 @@
+<div class="plc-list">
+  <h2>PLC List</h2>
+
+  <div class="filters">
+    <div class="search-box">
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        (ngModelChange)="onSearchChange()"
+        placeholder="Search by name, IP, or location..."
+        class="search-input"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label for="statusFilter">Filter by Status:</label>
+      <select 
+        id="statusFilter" 
+        [(ngModel)]="filterStatus" 
+        (ngModelChange)="onFilterChange()"
+        class="filter-select"
+      >
+        <option value="all">All</option>
+        <option value="online">Online</option>
+        <option value="offline">Offline</option>
+        <option value="error">Error</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="results-info">
+    Showing {{ filteredPLCs.length }} of {{ plcs.length }} PLCs
+  </div>
+
+  <div class="plc-table-container">
+    <table class="plc-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>IP Address</th>
+          <th>Model</th>
+          <th>Location</th>
+          <th>Last Seen</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let plc of filteredPLCs">
+          <td class="plc-name">{{ plc.name }}</td>
+          <td>
+            <span class="plc-status" [ngClass]="getStatusClass(plc.status)">
+              {{ plc.status }}
+            </span>
+          </td>
+          <td>{{ plc.ipAddress }}:{{ plc.port }}</td>
+          <td>{{ plc.model || 'N/A' }}</td>
+          <td>{{ plc.location || 'N/A' }}</td>
+          <td>{{ plc.lastSeen | date:'short' }}</td>
+          <td>
+            <a [routerLink]="['/plcs', plc.id]" class="btn-view">View</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="filteredPLCs.length === 0" class="no-results">
+      <p>No PLCs found matching your criteria.</p>
+    </div>
+  </div>
+</div>

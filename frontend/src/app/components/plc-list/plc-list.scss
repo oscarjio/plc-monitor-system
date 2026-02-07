@@ -1,0 +1,189 @@
+.plc-list {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  h2 {
+    margin-bottom: 2rem;
+    color: #2c3e50;
+  }
+
+  .filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+
+    .search-box {
+      flex: 1;
+      min-width: 300px;
+
+      .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #3498db;
+        }
+      }
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+      }
+
+      .filter-select {
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #3498db;
+        }
+      }
+    }
+  }
+
+  .results-info {
+    margin-bottom: 1rem;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+  }
+
+  .plc-table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    .plc-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background-color: #f8f9fa;
+
+        tr {
+          th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #dee2e6;
+          }
+        }
+      }
+
+      tbody {
+        tr {
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: #f8f9fa;
+          }
+
+          td {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            color: #2c3e50;
+
+            &.plc-name {
+              font-weight: 600;
+            }
+
+            .plc-status {
+              padding: 0.25rem 0.75rem;
+              border-radius: 12px;
+              font-size: 0.75rem;
+              font-weight: 500;
+              text-transform: uppercase;
+              display: inline-block;
+
+              &.status-online {
+                background-color: #d4edda;
+                color: #155724;
+              }
+
+              &.status-offline {
+                background-color: #fff3cd;
+                color: #856404;
+              }
+
+              &.status-error {
+                background-color: #f8d7da;
+                color: #721c24;
+              }
+
+              &.status-unknown {
+                background-color: #e2e3e5;
+                color: #383d41;
+              }
+            }
+
+            .btn-view {
+              padding: 0.5rem 1rem;
+              background-color: #3498db;
+              color: white;
+              text-decoration: none;
+              border-radius: 4px;
+              font-size: 0.9rem;
+              transition: background-color 0.2s;
+              display: inline-block;
+
+              &:hover {
+                background-color: #2980b9;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .no-results {
+      padding: 3rem;
+      text-align: center;
+      color: #7f8c8d;
+
+      p {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .plc-list {
+    .filters {
+      flex-direction: column;
+
+      .search-box {
+        min-width: 100%;
+      }
+    }
+
+    .plc-table-container {
+      overflow-x: auto;
+
+      .plc-table {
+        min-width: 800px;
+      }
+    }
+  }
+}
