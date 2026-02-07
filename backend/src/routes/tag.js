@@ -1,171 +1,212 @@
 /**
- * Tag Routes
- * Tag read/write operations and monitoring
+ * Tag Routes - Enhanced for UI Management
+ * CRUD operations for device tags
  */
 
 const express = require('express');
+const repository = require('../db/repository');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 
 /**
- * Mock tags database
+ * GET /api/tags
+ * Get all tags (optionally filter by device)
  */
-const tags = [
-  { plcId: 'PLC-001', id: 'TAG001', address: 'D100', name: 'Motor Speed', dataType: 'WORD', value: 1500, unit: 'RPM' },
-  { plcId: 'PLC-001', id: 'TAG002', address: 'D101', name: 'Temperature', dataType: 'WORD', value: 65, unit: '°C' },
-  { plcId: 'PLC-002', id: 'TAG003', address: '100', name: 'Pressure', dataType: 'WORD', value: 3.5, unit: 'bar' }
-];
-
-/**
- * GET /api/tags/:plcId
- * List all tags for a PLC
- */
-router.get('/:plcId', (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const { plcId } = req.params;
-    const plcTags = tags.filter(t => t.plcId === plcId);
+    const { deviceId } = req.query;
+
+    let tags;
+    if (deviceId) {
+      tags = await repository.getTagsByDevice(deviceId);
+    } else {
+      // Get all tags (could be slow with many devices)
+      const devices = await repository.getAllDevices();
+      tags = devices.flatMap(d => d.device_tags || []);
+    }
 
     res.json({
       success: true,
-      data: plcTags,
-      count: plcTags.length
+      data: tags.map(t => ({
+        id: t.id,
+        deviceId: t.device_id,
+        name: t.tag_name,
+        address: t.address,
+        dataType: t.data_type,
+        unit: t.unit,
+        minValue: t.min_value,
+        maxValue: t.max_value,
+        accessType: t.access_type,
+        scanRate: t.scan_rate_ms,
+        enabled: t.enabled
+      })),
+      count: tags.length
     });
   } catch (err) {
+    logger.error({ err }, 'Error fetching tags');
     next(err);
   }
 });
 
 /**
- * GET /api/tags/:plcId/:tagId
- * Get specific tag details
+ * POST /api/tags
+ * Create a new tag
  */
-router.get('/:plcId/:tagId', (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
-    const { plcId, tagId } = req.params;
-    const tag = tags.find(t => t.plcId === plcId && t.id === tagId);
+    const { deviceId, tagName, address, dataType, unit, minValue, maxValue, enabled } = req.body;
 
-    if (!tag) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Tag not found'
+    if (!deviceId || !tagName || !address || !dataType) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Missing required fields: deviceId, tagName, address, dataType'
       });
     }
 
-    res.json({
-      success: true,
-      data: tag
+    const tag = await repository.createTag({
+      device_id: parseInt(deviceId),
+      tag_name: tagName,
+      address,
+      data_type: dataType,
+      unit: unit || null,
+      min_value: minValue !== undefined ? parseFloat(minValue) : null,
+      max_value: maxValue !== undefined ? parseFloat(maxValue) : null,
+      access_type: 'read',
+      scan_rate_ms: 1000,
+      enabled: enabled !== false
     });
-  } catch (err) {
-    next(err);
-  }
-});
 
-/**
- * GET /api/tags/:plcId/:tagId/history
- * Get tag value history
- */
-router.get('/:plcId/:tagId/history', (req, res, next) => {
-  try {
-    const { plcId, tagId } = req.params;
-    const { limit = 100, timeRange = '1h' } = req.query;
+    logger.info({ tagId: tag.id, tagName }, 'Tag created');
 
-    const tag = tags.find(t => t.plcId === plcId && t.id === tagId);
-
-    if (!tag) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Tag not found'
-      });
-    }
-
-    // Mock historical data
-    const history = Array.from({ length: parseInt(limit) }, (_, i) => ({
-      timestamp: new Date(Date.now() - i * 60000).toISOString(),
-      value: tag.value + Math.random() * 10 - 5,
-      quality: 'good'
-    }));
-
-    res.json({
+    res.status(201).json({
       success: true,
-      data: history,
-      count: history.length,
-      timeRange
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * POST /api/tags/:plcId/:tagId/write
- * Write value to tag
- */
-router.post('/:plcId/:tagId/write', (req, res, next) => {
-  try {
-    const { plcId, tagId } = req.params;
-    const { value } = req.body;
-
-    const tag = tags.find(t => t.plcId === plcId && t.id === tagId);
-
-    if (!tag) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Tag not found'
-      });
-    }
-
-    const oldValue = tag.value;
-    tag.value = value;
-
-    logger.info({ plcId, tagId, oldValue, newValue: value }, 'Tag written');
-
-    res.json({
-      success: true,
-      message: 'Value written successfully',
       data: {
-        plcId,
-        tagId,
-        oldValue,
-        newValue: value,
-        timestamp: new Date().toISOString()
+        id: tag.id,
+        deviceId: tag.device_id,
+        name: tag.tag_name,
+        address: tag.address,
+        dataType: tag.data_type,
+        unit: tag.unit,
+        minValue: tag.min_value,
+        maxValue: tag.max_value,
+        enabled: tag.enabled
       }
     });
   } catch (err) {
+    logger.error({ err }, 'Error creating tag');
+    
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: 'Tag with this name already exists for this device'
+      });
+    }
+    
     next(err);
   }
 });
 
 /**
- * GET /api/tags/:plcId/:tagId/stats
- * Get tag statistics
+ * PUT /api/tags/:id
+ * Update a tag
  */
-router.get('/:plcId/:tagId/stats', (req, res, next) => {
+router.put('/:id', async (req, res, next) => {
   try {
-    const { plcId, tagId } = req.params;
-    const tag = tags.find(t => t.plcId === plcId && t.id === tagId);
+    const { tagName, address, dataType, unit, minValue, maxValue, enabled } = req.body;
 
-    if (!tag) {
-      return res.status(404).json({
-        error: 'Not Found',
-        message: 'Tag not found'
-      });
-    }
+    const updateData: any = {};
+    if (tagName) updateData.tag_name = tagName;
+    if (address) updateData.address = address;
+    if (dataType) updateData.data_type = dataType;
+    if (unit !== undefined) updateData.unit = unit;
+    if (minValue !== undefined) updateData.min_value = minValue !== null ? parseFloat(minValue) : null;
+    if (maxValue !== undefined) updateData.max_value = maxValue !== null ? parseFloat(maxValue) : null;
+    if (enabled !== undefined) updateData.enabled = enabled;
+
+    const tag = await repository.updateTag(parseInt(req.params.id), updateData);
+
+    logger.info({ tagId: tag.id, tagName: tag.tag_name }, 'Tag updated');
 
     res.json({
       success: true,
       data: {
-        tagId,
-        currentValue: tag.value,
-        minValue: Math.min(tag.value - 5, tag.value),
-        maxValue: Math.max(tag.value + 5, tag.value),
-        averageValue: tag.value,
-        readCount: 1000,
-        errorCount: 5,
-        lastUpdate: new Date().toISOString()
+        id: tag.id,
+        deviceId: tag.device_id,
+        name: tag.tag_name,
+        address: tag.address,
+        dataType: tag.data_type,
+        unit: tag.unit,
+        minValue: tag.min_value,
+        maxValue: tag.max_value,
+        enabled: tag.enabled
       }
     });
   } catch (err) {
+    logger.error({ err, id: req.params.id }, 'Error updating tag');
+    
+    if (err.code === 'P2025') {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: `Tag not found: ${req.params.id}`
+      });
+    }
+    
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/tags/:id
+ * Delete a tag
+ */
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const tag = await repository.deleteTag(parseInt(req.params.id));
+
+    logger.info({ tagId: tag.id }, 'Tag deleted');
+
+    res.json({
+      success: true,
+      message: 'Tag deleted successfully',
+      data: {
+        id: tag.id,
+        name: tag.tag_name
+      }
+    });
+  } catch (err) {
+    logger.error({ err, id: req.params.id }, 'Error deleting tag');
+    
+    if (err.code === 'P2025') {
+      return res.status(404).json({
+        error: 'Not Found',
+        message: `Tag not found: ${req.params.id}`
+      });
+    }
+    
+    next(err);
+  }
+});
+
+/**
+ * GET /api/tags/:id/current-value
+ * Get current value for a tag (from latest time-series data)
+ */
+router.get('/:id/current-value', async (req, res, next) => {
+  try {
+    // TODO: Implement fetching latest value from ts_data
+    res.json({
+      success: true,
+      data: {
+        tagId: req.params.id,
+        value: null,
+        quality: 'unknown',
+        timestamp: new Date().toISOString(),
+        message: 'Not implemented yet - will fetch from ts_data'
+      }
+    });
+  } catch (err) {
+    logger.error({ err, id: req.params.id }, 'Error fetching tag value');
     next(err);
   }
 });

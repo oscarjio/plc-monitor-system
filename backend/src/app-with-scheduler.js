@@ -57,6 +57,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/plcs', require('./routes/plc'));
 app.use('/api/alarms', require('./routes/alarm'));
+app.use('/api/tags', require('./routes/tag'));
 
 // Stats endpoint
 app.get('/api/stats', async (req, res, next) => {
