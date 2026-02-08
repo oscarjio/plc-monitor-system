@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { PlcService } from '../../services/plc.service';
 import { PLC, PLCStatus } from '../../models/plc.model';
 
@@ -11,7 +12,7 @@ import { PLC, PLCStatus } from '../../models/plc.model';
   templateUrl: './plc-detail.html',
   styleUrl: './plc-detail.scss',
 })
-export class PlcDetail implements OnInit {
+export class PlcDetail implements OnInit, OnDestroy {
   plc: PLC | null = null;
   PLCStatus = PLCStatus;
   showEditModal = false;
@@ -26,6 +27,12 @@ export class PlcDetail implements OnInit {
     port: 502,
     protocol: 'modbus-tcp'
   };
+  
+  // Loading and error states
+  loading = false;
+  error: string | null = null;
+  
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
@@ -38,16 +45,44 @@ export class PlcDetail implements OnInit {
       const id = params['id'];
       this.loadPLC(id);
     });
+    
+    // Subscribe to loading state
+    this.plcService.loading$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(loading => this.loading = loading);
+    
+    // Subscribe to error state
+    this.plcService.error$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(error => this.error = error);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadPLC(id: string): void {
-    this.plcService.getPLCById(id).subscribe(plc => {
-      this.plc = plc || null;
-    });
+    this.plcService.getPLCById(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: plc => {
+          if (plc) {
+            this.plc = plc;
+          } else {
+            this.error = `PLC with ID ${id} not found`;
+          }
+        },
+        error: err => {
+          console.error('Failed to load PLC:', err);
+        }
+      });
   }
 
   refreshPLC(): void {
     if (this.plc) {
+      this.plcService.clearError();
+      this.error = null;
       this.loadPLC(this.plc.id);
     }
   }
@@ -71,17 +106,19 @@ export class PlcDetail implements OnInit {
   saveEdit(): void {
     if (!this.plc) return;
 
-    this.plcService.updatePLC(this.plc.id, this.editData).subscribe({
-      next: (updatedPLC) => {
-        this.plc = updatedPLC;
-        this.closeEditModal();
-        console.log('PLC updated successfully');
-      },
-      error: (err) => {
-        console.error('Failed to update PLC:', err);
-        alert('Failed to update PLC. Please try again.');
-      }
-    });
+    this.plcService.updatePLC(this.plc.id, this.editData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedPLC) => {
+          this.plc = updatedPLC;
+          this.closeEditModal();
+          console.log('PLC updated successfully');
+        },
+        error: (err) => {
+          console.error('Failed to update PLC:', err);
+          alert('Failed to update PLC. Please try again.');
+        }
+      });
   }
 
   getStatusClass(status: PLCStatus): string {
