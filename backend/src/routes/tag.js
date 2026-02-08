@@ -115,7 +115,7 @@ router.put('/:id', async (req, res, next) => {
   try {
     const { tagName, address, dataType, unit, minValue, maxValue, enabled } = req.body;
 
-    const updateData: any = {};
+    const updateData = {};
     if (tagName) updateData.tag_name = tagName;
     if (address) updateData.address = address;
     if (dataType) updateData.data_type = dataType;
