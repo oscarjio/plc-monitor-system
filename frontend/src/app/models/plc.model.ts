@@ -3,6 +3,7 @@ export interface PLC {
   name: string;
   ipAddress: string;
   port: number;
+  protocol?: string;
   status: PLCStatus;
   lastSeen?: Date;
   model?: string;

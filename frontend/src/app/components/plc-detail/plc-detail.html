@@ -16,8 +16,8 @@
         </span>
       </div>
       <div class="actions">
-        <button class="btn-action">Refresh</button>
-        <button class="btn-action">Edit</button>
+        <button class="btn-action" (click)="refreshPLC()">Refresh</button>
+        <button class="btn-action" (click)="openEditModal()">Edit</button>
       </div>
     </div>
 
@@ -104,4 +104,68 @@
       <a routerLink="/plcs" class="btn-back">Back to PLC List</a>
     </div>
   </ng-template>
+
+  <!-- Edit PLC Modal -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Edit PLC</h3>
+      <form (ngSubmit)="saveEdit()" #editForm="ngForm">
+        <div class="form-group">
+          <label for="edit-name">Name:</label>
+          <input 
+            type="text" 
+            id="edit-name" 
+            name="name"
+            [(ngModel)]="editData.name" 
+            required
+            class="form-input"
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-ip">IP Address:</label>
+          <input 
+            type="text" 
+            id="edit-ip" 
+            name="ipAddress"
+            [(ngModel)]="editData.ipAddress" 
+            required
+            pattern="^(\d{1,3}\.){3}\d{1,3}$"
+            class="form-input"
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-port">Port:</label>
+          <input 
+            type="number" 
+            id="edit-port" 
+            name="port"
+            [(ngModel)]="editData.port" 
+            required
+            min="1"
+            max="65535"
+            class="form-input"
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-protocol">Protocol:</label>
+          <select 
+            id="edit-protocol" 
+            name="protocol"
+            [(ngModel)]="editData.protocol" 
+            required
+            class="form-input"
+          >
+            <option value="modbus-tcp">Modbus TCP</option>
+            <option value="s7">Siemens S7</option>
+            <option value="opc-ua">OPC UA</option>
+            <option value="ethernet-ip">Ethernet/IP</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-save" [disabled]="!editForm.form.valid">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>

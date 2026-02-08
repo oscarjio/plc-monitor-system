@@ -1,0 +1,289 @@
+/* Dark Mode Theme - MANDATORY 🌙 */
+
+body {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Cards and Containers */
+.plc-detail .content-grid .info-card,
+.plc-detail .content-grid .tags-card,
+.plc-detail .loading,
+.plc-detail .not-found,
+.dashboard .stat-card,
+.plc-list .plc-table-container,
+app-navbar nav {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6,
+.plc-detail .header .title-section h2,
+.plc-detail .breadcrumb .current {
+  color: #ffffff;
+}
+
+/* Links */
+a,
+.plc-detail .breadcrumb a {
+  color: #007bff;
+
+  &:hover {
+    color: #0056b3;
+  }
+}
+
+/* Borders */
+.plc-detail .content-grid .info-card h3,
+.plc-detail .content-grid .tags-card h3,
+.plc-detail .content-grid .info-card .info-grid .info-row {
+  border-color: #3a3a3a;
+}
+
+/* Tables */
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table thead {
+  background-color: #2a2a2a;
+}
+
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table thead tr th,
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table tbody tr td,
+.plc-list .plc-table thead th {
+  color: #ffffff;
+  border-color: #3a3a3a;
+}
+
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table tbody tr:hover,
+.plc-list .plc-table tbody tr:hover {
+  background-color: #333333;
+}
+
+/* Info Rows */
+.plc-detail .content-grid .info-card .info-grid .info-row .label {
+  color: #aaaaaa;
+}
+
+.plc-detail .content-grid .info-card .info-grid .info-row .value,
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table tbody tr td {
+  color: #ffffff;
+}
+
+/* Tag Address */
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table tbody tr td.tag-address {
+  color: #aaaaaa;
+}
+
+/* Tag Value */
+.plc-detail .content-grid .tags-card .tags-table-container .tags-table tbody tr td.tag-value {
+  color: #007bff;
+}
+
+/* Loading/Not Found */
+.plc-detail .loading p,
+.plc-detail .not-found p,
+.plc-detail .content-grid .tags-card .no-tags p {
+  color: #aaaaaa;
+}
+
+/* Buttons */
+.plc-detail .header .actions .btn-action,
+.plc-detail .loading .btn-back,
+.plc-detail .not-found .btn-back,
+.btn-view,
+button.btn-primary,
+button.btn-secondary {
+  background-color: #007bff;
+  color: #ffffff;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+}
+
+/* Inputs and Forms */
+input, select, textarea {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+
+  &:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+
+  &::placeholder {
+    color: #666666;
+  }
+}
+
+.search-input,
+.filter-select {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+
+  &:focus {
+    border-color: #007bff;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #555555;
+
+  &:hover {
+    background: #777777;
+  }
+}
+
+/* Navbar */
+app-navbar nav {
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+
+  a {
+    color: #ffffff;
+
+    &.active,
+    &:hover {
+      color: #007bff;
+    }
+  }
+}
+
+/* Dashboard Stats */
+.dashboard .stat-card {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+
+  .stat-label {
+    color: #aaaaaa;
+  }
+
+  .stat-value {
+    color: #ffffff;
+  }
+
+  .stat-change {
+    color: #aaaaaa;
+  }
+}
+
+/* Separator */
+.plc-detail .breadcrumb .separator {
+  color: #666666;
+}
+
+/* Modal */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+
+  h3 {
+    color: #ffffff;
+    border-bottom: 2px solid #3a3a3a;
+  }
+
+  label {
+    color: #aaaaaa;
+  }
+
+  input {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #3a3a3a;
+
+    &:focus {
+      border-color: #007bff;
+    }
+  }
+
+  .modal-actions {
+    border-top: 1px solid #3a3a3a;
+
+    button {
+      &.btn-cancel {
+        background-color: #3a3a3a;
+        color: #ffffff;
+
+        &:hover {
+          background-color: #4a4a4a;
+        }
+      }
+
+      &.btn-save {
+        background-color: #007bff;
+        color: #ffffff;
+
+        &:hover {
+          background-color: #0056b3;
+        }
+      }
+    }
+  }
+}
+
+/* PLC Status Badges - Keep visible in dark mode */
+.plc-status {
+  &.status-online {
+    background-color: #1e4620;
+    color: #4ade80;
+  }
+
+  &.status-offline {
+    background-color: #4a3800;
+    color: #fbbf24;
+  }
+
+  &.status-error {
+    background-color: #4a1818;
+    color: #f87171;
+  }
+}
+
+/* Tag Quality Badge */
+.tag-quality {
+  background-color: #3a3a3a;
+  color: #aaaaaa;
+
+  &.quality-good {
+    background-color: #1e4620;
+    color: #4ade80;
+  }
+}
+
+/* PLC List */
+.plc-list {
+  .filters {
+    background-color: #2a2a2a;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+
+    label {
+      color: #aaaaaa;
+    }
+  }
+
+  .results-info {
+    color: #aaaaaa;
+  }
+
+  .no-results {
+    color: #aaaaaa;
+  }
+}
+
+/* App Container */
+.app-container {
+  background-color: #1a1a1a;
+}

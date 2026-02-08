@@ -14,6 +14,7 @@ export class PlcService {
       name: 'PLC-001',
       ipAddress: '192.168.1.100',
       port: 502,
+      protocol: 's7',
       status: PLCStatus.ONLINE,
       model: 'Siemens S7-1200',
       location: 'Production Line 1',
@@ -46,6 +47,7 @@ export class PlcService {
       name: 'PLC-002',
       ipAddress: '192.168.1.101',
       port: 502,
+      protocol: 'ethernet-ip',
       status: PLCStatus.ONLINE,
       model: 'Allen Bradley CompactLogix',
       location: 'Production Line 2',
@@ -56,6 +58,7 @@ export class PlcService {
       name: 'PLC-003',
       ipAddress: '192.168.1.102',
       port: 502,
+      protocol: 'modbus-tcp',
       status: PLCStatus.OFFLINE,
       model: 'Schneider Modicon M340',
       location: 'Warehouse',
@@ -66,6 +69,7 @@ export class PlcService {
       name: 'PLC-004',
       ipAddress: '192.168.1.103',
       port: 502,
+      protocol: 's7',
       status: PLCStatus.ERROR,
       model: 'Siemens S7-1500',
       location: 'Quality Control',
@@ -94,11 +98,15 @@ export class PlcService {
     return of(stats);
   }
 
-  updatePLC(plc: PLC): Observable<PLC> {
-    const index = this.mockPLCs.findIndex(p => p.id === plc.id);
+  updatePLC(id: string, data: Partial<PLC>): Observable<PLC> {
+    const index = this.mockPLCs.findIndex(p => p.id === id);
     if (index !== -1) {
-      this.mockPLCs[index] = plc;
+      this.mockPLCs[index] = {
+        ...this.mockPLCs[index],
+        ...data
+      };
+      return of(this.mockPLCs[index]);
     }
-    return of(plc);
+    throw new Error('PLC not found');
   }
 }
