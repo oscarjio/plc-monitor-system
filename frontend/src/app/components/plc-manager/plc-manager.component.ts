@@ -974,11 +974,30 @@ export class PlcManagerComponent implements OnInit {
 
   async saveTag() {
     if (!this.formTag.tagName || !this.formTag.address || !this.formTag.dataType) {
-      alert('⚠️ Fyll i alla obligatoriska fält');
+      alert('⚠️ Fyll i alla obligatoriska fält (Namn, Adress, Datatyp)');
       return;
     }
 
-    this.formTag.deviceId = this.selectedPlc!.id!;
+    if (!this.selectedPlc?.id) {
+      alert('⚠️ Ingen PLC vald');
+      return;
+    }
+
+    this.formTag.deviceId = this.selectedPlc.id;
+
+    // Prepare payload matching backend expectations
+    const payload = {
+      deviceId: this.formTag.deviceId,
+      tagName: this.formTag.tagName,
+      address: this.formTag.address,
+      dataType: this.formTag.dataType,
+      unit: this.formTag.unit || null,
+      minValue: this.formTag.minValue !== undefined ? this.formTag.minValue : null,
+      maxValue: this.formTag.maxValue !== undefined ? this.formTag.maxValue : null,
+      enabled: this.formTag.enabled !== false
+    };
+
+    console.log('💾 Saving tag:', payload);
 
     try {
       const method = this.editingTag ? 'PUT' : 'POST';
@@ -989,20 +1008,26 @@ export class PlcManagerComponent implements OnInit {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.formTag)
+        body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
-        alert(`✅ Tag ${this.editingTag ? 'uppdaterad' : 'skapad'}!`);
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log('✅ Tag saved successfully:', result.data);
+        alert(`✅ Tag "${payload.tagName}" ${this.editingTag ? 'uppdaterad' : 'skapad'}!`);
         this.cancelTagForm();
         if (this.selectedPlc?.id) {
           await this.loadTagsForPlc(this.selectedPlc.id);
           this.currentTags = this.plcTags[this.selectedPlc.id] || [];
         }
+      } else {
+        console.error('❌ Failed to save tag:', result);
+        alert(`❌ Kunde inte spara tag: ${result.message || result.error || 'Okänt fel'}`);
       }
     } catch (error) {
-      console.error('Failed to save tag:', error);
-      alert('❌ Kunde inte spara tag');
+      console.error('❌ Network error saving tag:', error);
+      alert('❌ Kunde inte spara tag - nätverksfel');
     }
   }
 

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 
 interface ScadaElement {
   id: string;
-  type: 'tank' | 'pump' | 'valve' | 'gauge' | 'pipe' | 'label';
+  type: 'tank' | 'pump' | 'valve' | 'gauge' | 'pipe' | 'label' | 'button';
   x: number;
   y: number;
   width: number;
@@ -20,6 +20,8 @@ interface ScadaElement {
     fillLevel?: number; // 0-100% for tanks
     isRunning?: boolean; // for pumps
     isOpen?: boolean; // for valves
+    buttonAction?: 'ON/OFF' | 'Start/Stop' | 'Reset'; // for buttons
+    isPressed?: boolean; // for buttons
   };
 }
 
@@ -132,6 +134,17 @@ interface View {
               (dragstart)="onDragStart($event, 'label')">
               <div class="component-preview label-preview">T</div>
               <span>Etikett</span>
+            </div>
+          </div>
+
+          <div class="component-category">
+            <h4>Kontroller</h4>
+            <div 
+              class="component-item"
+              draggable="true"
+              (dragstart)="onDragStart($event, 'button')">
+              <div class="component-preview button-preview">ON</div>
+              <span>Knapp</span>
             </div>
           </div>
         </div>
@@ -261,6 +274,16 @@ interface View {
                 {{ element.config.label || 'Label' }}
               </div>
 
+              <!-- Button -->
+              <div *ngIf="element.type === 'button'" 
+                   class="button-element"
+                   [class.pressed]="element.config.isPressed"
+                   (click)="onButtonClick($event, element)">
+                <span class="button-text">
+                  {{ element.config.label || element.config.buttonAction || 'Button' }}
+                </span>
+              </div>
+
               <!-- Resize Handles -->
               <div *ngIf="selectedElement?.id === element.id" class="resize-handles">
                 <div class="resize-handle nw"></div>
@@ -321,6 +344,15 @@ interface View {
                 [(ngModel)]="selectedElement.config.isOpen">
               Öppen
             </label>
+          </div>
+
+          <div class="property-group" *ngIf="selectedElement.type === 'button'">
+            <label>Åtgärd</label>
+            <select [(ngModel)]="selectedElement.config.buttonAction">
+              <option value="ON/OFF">ON/OFF</option>
+              <option value="Start/Stop">Start/Stop</option>
+              <option value="Reset">Reset</option>
+            </select>
           </div>
 
           <div class="property-group">
@@ -538,6 +570,18 @@ interface View {
       color: #374151;
     }
 
+    .button-preview {
+      background-color: #3b82f6;
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+      border: 2px solid #2563eb;
+    }
+
     .component-item span {
       font-size: 0.75rem;
       color: #4b5563;
@@ -602,6 +646,38 @@ interface View {
       justify-content: center;
       font-weight: bold;
       color: #374151;
+    }
+
+    .button-element {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #3b82f6;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      user-select: none;
+    }
+
+    .button-element:hover {
+      background-color: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .button-element.pressed {
+      background-color: #1e40af;
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .button-text {
+      pointer-events: none;
     }
 
     .resize-handles {
@@ -694,6 +770,15 @@ export class ViewBuilderComponent implements OnInit {
   dragStartY = 0;
 
   ngOnInit() {
+    // Check if there's a view to edit
+    const editingView = localStorage.getItem('current-editing-view');
+    if (editingView) {
+      this.currentView = JSON.parse(editingView);
+      this.selectedElement = null;
+      localStorage.removeItem('current-editing-view');
+      console.log('Loaded view for editing:', this.currentView.name);
+    }
+
     // Load saved views from localStorage
     const saved = localStorage.getItem('scada-views');
     if (saved) {
@@ -728,7 +813,8 @@ export class ViewBuilderComponent implements OnInit {
       valve: { width: 80, height: 80 },
       gauge: { width: 120, height: 100 },
       pipe: { width: 100, height: 20 },
-      label: { width: 100, height: 40 }
+      label: { width: 100, height: 40 },
+      button: { width: 120, height: 50 }
     };
 
     const size = defaultSizes[type] || { width: 100, height: 100 };
@@ -746,12 +832,32 @@ export class ViewBuilderComponent implements OnInit {
         fillLevel: 50,
         isRunning: false,
         isOpen: false,
-        color: '#e5e7eb'
+        color: '#e5e7eb',
+        buttonAction: 'ON/OFF',
+        isPressed: false
       }
     };
 
     this.currentView.elements.push(element);
     this.selectElement(null, element);
+  }
+
+  onButtonClick(event: MouseEvent, element: ScadaElement) {
+    event.stopPropagation();
+    
+    // Visual feedback
+    element.config.isPressed = true;
+    setTimeout(() => {
+      element.config.isPressed = false;
+    }, 200);
+
+    console.log(`🔘 Button clicked: ${element.config.buttonAction}`, {
+      elementId: element.id,
+      action: element.config.buttonAction,
+      tagBinding: element.config.tagBinding
+    });
+
+    alert(`🔘 Button: ${element.config.buttonAction}\nTag: ${element.config.tagBinding || 'Not bound'}`);
   }
 
   selectElement(event: any, element: ScadaElement) {
