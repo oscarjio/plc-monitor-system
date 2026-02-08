@@ -84,11 +84,13 @@ Systemet är uppdelat i huvudkomponenter:
 
 ## Dokumentation
 
+- **[FULL_STACK_GUIDE.md](./FULL_STACK_GUIDE.md)** - ⭐ Komplett guide för hela stacken (ENG)
 - **[BACKEND_STATUS_REPORT.md](./BACKEND_STATUS_REPORT.md)** - Komplett backend-dokumentation (ENG)
 - **[MASTER_STATUS_REPORT.md](./MASTER_STATUS_REPORT.md)** - Övergripande projektstatus (ENG)
 - **[IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)** - Implementationsdetaljer (ENG)
 - **[backend/README.md](./backend/README.md)** - Backend API-referens (ENG)
 - **[backend/QUICK_START.md](./backend/QUICK_START.md)** - Backend snabbstart (ENG)
+- **[DEVELOPMENT_STATUS.md](./DEVELOPMENT_STATUS.md)** - Utvecklingsstatus och nästa steg (ENG)
 
 ## Teknisk Stack
 
